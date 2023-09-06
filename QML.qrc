@@ -1,0 +1,28 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>UI/HomeScreen/HomeScreen.qml</file>
+        <file>UI/assets/gauge.jpg</file>
+        <file>UI/assets/settings.png</file>
+        <file>UI/assets/home.png</file>
+        <file>UI/assets/map.png</file>
+        <file>UI/assets/battery.png</file>
+        <file>MapScreen.qml</file>
+        <file>UI/assets/bluetooth .png</file>
+        <file>UI/assets/temp.png</file>
+        <file>UI/assets/ebike.png</file>
+        <file>UI/assets/compassgraphic.png</file>
+        <file>UI/assets/map 1.png</file>
+        <file>UI/assets/pv.png</file>
+        <file>UI/assets/power.png</file>
+        <file>UI/assets/distance.png</file>
+        <file>UI/assets/time.png</file>
+        <file>UI/assets/elec.png</file>
+        <file>battery.qml</file>
+        <file>error.qml</file>
+        <file>UI/assets/error.png</file>
+        <file>UI/assets/lefti.png</file>
+        <file>mainhome.qml</file>
+        <file>bluetoothmode.qml</file>
+    </qresource>
+</RCC>

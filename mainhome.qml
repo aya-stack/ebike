@@ -1,0 +1,607 @@
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import QtLocation 5.15
+import QtQuick.Shapes 1.15
+
+
+
+Item {
+    Rectangle {
+        id: mainBackground
+        anchors.fill: parent
+       color: "black" // Dark background color
+    }
+    // Properties to display dynamic data
+    property real speedValue: 0
+    property real distanceValue: 0
+    property int temperatureValue: 40
+    property real rpmValue: 0
+    property int assistLevel: 0
+    property int minAssistLevel: 0
+    property int maxAssistLevel: 5
+    property string currentTime: ""
+    property string currentDate: ""
+    property int batteryLevel: 30
+    property real inclinationValue: 30
+
+    // Set the initial temperature value (change as needed)
+
+       Canvas {
+             anchors {
+                 top: speedometerCanvas.bottom
+                 horizontalCenter: parent.horizontalCenter
+                 topMargin: 40
+             }
+             width: 48
+             height: 24
+             contextType: "2d"
+
+             onPaint: {
+                 var ctx = canvas.getContext("2d");
+                 ctx.clearRect(0, 0, width, height);
+
+                 // Draw the battery outline
+                 ctx.strokeStyle = "black";
+                 ctx.lineWidth = 1;
+                 ctx.rect(0, 0, width, height);
+                 ctx.stroke();
+
+                 // Calculate the width of the battery fill based on the battery level
+                 var fillWidth = (batteryLevel / 100) * (width - 2);
+
+                 // Draw the battery fill
+                 if (batteryLevel > 10) {
+                     ctx.fillStyle = "green";
+                 } else {
+                     ctx.fillStyle = "red";
+                 }
+                 ctx.fillRect(1, 1, fillWidth, height - 2);
+             }
+         }
+
+
+
+    // Timer to update the time every second
+    Timer {
+        interval: 1000
+        running: true
+        repeat: true
+        onTriggered: {
+            updateTime();
+        }
+    }
+
+   // Function to update the time
+    function updateTime() {
+        var currentTime = new Date();
+        var hours = currentTime.getHours().toString().padStart(2, '0');
+        var minutes = currentTime.getMinutes().toString().padStart(2, '0');
+        var seconds = currentTime.getSeconds().toString().padStart(2, '0');
+        currentTimeText.text = hours + ":" + minutes + ":" + seconds;
+
+        // Update the date
+        var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        var day = currentTime.getDate().toString().padStart(2, '0');
+        var month = months[currentTime.getMonth()];
+        var year = currentTime.getFullYear().toString();
+        currentDateText.text = day + " " + month + " " + year;
+    }
+
+    Text {
+        id: currentTimeText
+        anchors {
+            top: parent.top
+            left: parent.left
+            topMargin: 20
+            leftMargin: 20
+        }
+        font.pixelSize: 30
+        color: "white"
+    }
+
+    Canvas {
+        id: speedometerCanvas
+        width: 400 // Increase the size of the speedometer
+        height: 400 // Make the speedometer square for simplicity
+
+        anchors {
+            left: parent.left
+            verticalCenter: parent.verticalCenter
+            leftMargin: 50
+        }
+        // Center the speedometer in the window
+
+        onPaint: {
+            var ctx = speedometerCanvas.getContext("2d");
+            var centerX = speedometerCanvas.width / 2;
+            var centerY = speedometerCanvas.height / 2;
+            var radius = Math.min(centerX, centerY) - 50; // Set the radius to fit the canvas
+
+            // Draw the background for the speedometer gauge (circle)
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius + 5, 0, 2 * Math.PI); // Use 2 * Math.PI to draw a full circle
+            var gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius + 5);
+            gradient.addColorStop(0, "rgba(30, 144, 255, 0.3)"); // Blue color with transparency
+            gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            // Draw the gauge's outline (circle)
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI); // Use 2 * Math.PI to draw a full circle
+            ctx.lineWidth = 8; // Decrease the gauge outline width for a thinner look
+            ctx.strokeStyle = "grey"; // Grey color for the gauge outline
+            ctx.stroke();
+
+            // Calculate the angle for the needle based on the speed value
+            var minValue = 0;
+            var maxValue = 100;
+            var valueRange = 2 * Math.PI; // 360 degrees for a full circle gauge
+            var valueAngle = valueRange * (speedValue - minValue) / (maxValue - minValue); // Use entire range
+
+            // Draw the needle for the speedometer gauge
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(centerX + radius * 0.85 * Math.cos(valueAngle), centerY + radius * 0.85 * Math.sin(valueAngle)); // Slightly shorter needle
+            ctx.strokeStyle = "red"; // Set needle color to red
+            ctx.lineWidth = 3; // Thinner needle
+            ctx.stroke();
+
+            // Draw the numbers and tick marks on the speedometer
+            ctx.font = "bold 16px Arial"; // Decrease the font size for a larger appearance
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            for (var i = 0; i <= 100; i += 10) {
+                var angle = (i / 100) * 2 * Math.PI; // Convert the percentage to radians for a full circle
+                var numberX = centerX + (radius - 60) * Math.cos(angle); // Increase the distance for more spacious numbers
+                var numberY = centerY - (radius - 60) * Math.sin(angle); // Subtract to adjust for the inverted Y-axis
+                ctx.fillText(i.toString(), numberX, numberY);
+
+                // Draw tick marks at intervals of 5
+                if (i % 5 === 0) {
+                    var tickStartX = centerX + (radius - 30) * Math.cos(angle);
+                    var tickStartY = centerY - (radius - 30) * Math.sin(angle);
+                    var tickEndX = centerX + (radius - 15) * Math.cos(angle);
+                    var tickEndY = centerY - (radius - 15) * Math.sin(angle);
+                    ctx.beginPath();
+                    ctx.moveTo(tickStartX, tickStartY);
+                    ctx.lineTo(tickEndX, tickEndY);
+                    ctx.strokeStyle = "white";
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                }
+            }
+        }
+        Text {
+              text: "Speed"
+              font.pixelSize: 16
+              color: "white"
+              anchors.centerIn: parent
+          }
+
+    }
+
+    Canvas {
+        id: rpmGaugeCanvas
+        width: 400 // Increase the size of the gauge
+        height: 400 // Make the gauge square for simplicity
+
+        anchors {
+            left: speedometerCanvas.right
+            verticalCenter: speedometerCanvas.verticalCenter
+            leftMargin: 50
+        }
+        // Position the RPM gauge to the right of the speedometer
+
+        onPaint: {
+            var ctx = rpmGaugeCanvas.getContext("2d");
+            var centerX = rpmGaugeCanvas.width / 2;
+            var centerY = rpmGaugeCanvas.height / 2;
+            var radius = Math.min(centerX, centerY) - 50; // Set the radius to fit the canvas
+
+            // Draw the background for the RPM gauge (circle)
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius + 5, 0, 2 * Math.PI); // Use 2 * Math.PI to draw a full circle
+            var gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius + 5);
+            gradient.addColorStop(0, "rgba(255, 165, 0, 0.3)"); // Orange color with transparency
+            gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            // Draw the gauge's outline (circle)
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI); // Use 2 * Math.PI to draw a full circle
+            ctx.lineWidth = 8; // Decrease the gauge outline width for a thinner look
+            ctx.strokeStyle = "grey"; // Grey color for the gauge outline
+            ctx.stroke();
+
+            // Calculate the angle for the needle based on the RPM value
+            var minRPM = 0;
+            var maxRPM = 3000; // Set the maximum RPM value (change as needed)
+            var rpmRange = 2 * Math.PI; // 360 degrees for a full circle gauge
+            var rpmAngle = rpmRange * (rpmValue - minRPM) / (maxRPM - minRPM); // Use entire range
+
+            // Draw the needle for the RPM gauge
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            var needleLength = 0.5; // Adjust the length of the needle (0.7 means 70% of the radius)
+            ctx.lineTo(centerX + radius * needleLength * Math.cos(rpmAngle), centerY + radius * needleLength * Math.sin(rpmAngle));
+            ctx.strokeStyle = "red"; // Set needle color to red
+            ctx.lineWidth = 3; // Thinner needle
+            ctx.stroke();
+
+            // Draw the numbers and tick marks on the RPM gauge
+            ctx.font = "bold 16px Arial"; // Decrease the font size for a larger appearance
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            for (var i = 0; i <= maxRPM; i += 300) {
+                var angle = (i / maxRPM) * 2 * Math.PI; // Convert the RPM to radians for a full circle
+                var numberX = centerX + (radius - 60) * Math.cos(angle); // Increase the distance for more spacious numbers
+                var numberY = centerY - (radius - 60) * Math.sin(angle); // Subtract to adjust for the inverted Y-axis
+                ctx.fillText(i.toString(), numberX, numberY);
+
+
+                   ctx.fillText(i.toString(), numberX, numberY)
+                // Draw tick marks at intervals of 200
+                if (i % 200 === 0) {
+                    var tickStartX = centerX + (radius - 30) * Math.cos(angle);
+                    var tickStartY = centerY - (radius - 30) * Math.sin(angle);
+                    var tickEndX = centerX + (radius - 15) * Math.cos(angle);
+                    var tickEndY = centerY - (radius - 15) * Math.sin(angle);
+                    ctx.beginPath();
+                    ctx.moveTo(tickStartX, tickStartY);
+                    ctx.lineTo(tickEndX, tickEndY);
+                    ctx.strokeStyle = "white";
+                    ctx.lineWidth = i % 20 === 0 ? 3 : 1;
+                    ctx.stroke();
+                }
+            }
+        }
+        Text {
+                text: "RPM"
+                font.pixelSize: 16
+                color: "white"
+                anchors.centerIn: parent
+            }
+    }
+
+
+
+
+
+
+
+
+
+
+
+    // Battery Level Gauge
+    Canvas {
+        id: batteryGaugeCanvas
+        width: 300
+        height: 300
+
+        anchors {
+                bottom: speedometerCanvas.bottom
+                left: speedometerCanvas.left
+                bottomMargin: 55
+            }
+
+        onPaint: {
+               var ctx = batteryGaugeCanvas.getContext("2d");
+               var centerX = batteryGaugeCanvas.width / 2;
+               var centerY = batteryGaugeCanvas.height / 2;
+               var radius = Math.min(centerX, centerY) - 10;
+               var startAngle = 3 * Math.PI / 4; // 135 degrees (start angle in radians)
+               var endAngle = 5 * Math.PI / 4;   // 225 degrees (end angle in radians)
+
+               // Draw the background for the battery gauge (circle)
+               ctx.beginPath();
+               ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+               ctx.strokeStyle = "#333"; // Dark gray color
+               ctx.lineWidth = 10;
+               ctx.stroke();
+
+               // Calculate the angle for the battery level based on the batteryLevel property
+               var minBatteryLevel = 0;
+               var maxBatteryLevel = 100;
+               var batteryLevelRange = endAngle - startAngle; // Angle range for the battery gauge
+               var batteryLevelAngle = batteryLevelRange * (batteryLevel - minBatteryLevel) / (maxBatteryLevel - minBatteryLevel);
+
+               // Draw the battery level arc
+               ctx.beginPath();
+               ctx.arc(centerX, centerY, radius, startAngle, startAngle + batteryLevelAngle);
+               ctx.strokeStyle = batteryLevel > 20 ? "green" : "red";
+               ctx.lineWidth = 15;
+               ctx.stroke();
+           }
+       }
+
+
+    Canvas {
+        id: incGaugeCanvas
+        width: 150
+        height: 150
+
+        anchors {
+                    top: parent.top // Place the inclination gauge at the top of the window
+                    horizontalCenter: parent.horizontalCenter
+                    topMargin: 100 // Adjust the margin as needed
+                }
+        onPaint: {
+              var ctx = incGaugeCanvas.getContext("2d");
+              var centerX = incGaugeCanvas.width / 2;
+              var centerY = incGaugeCanvas.height / 2;
+              var radius = Math.min(centerX, centerY) - 5;
+
+              // Calculate the angle for the inclination value (70% of the circle)
+              var inclinationRange = 0.7 * Math.PI; // 70% of 180 degrees for the gauge
+              var inclinationStartAngle = Math.PI * 0.85; // 15% of 180 degrees as the starting angle (inverted direction)
+              var minInclination = -90;
+              var maxInclination = 90; // Set the maximum inclination value (change as needed);
+              var inclinationAngle = inclinationStartAngle + inclinationRange * (inclinationValue - minInclination) / (maxInclination - minInclination);
+
+              // Draw the inclination arc (inverted direction)
+              ctx.beginPath();
+              ctx.arc(centerX, centerY, radius, inclinationStartAngle, inclinationAngle);
+              ctx.strokeStyle = "grey"; // Green color for the inclination arc
+              ctx.lineWidth = 8;
+              ctx.stroke();
+
+              // Draw the angle indicators
+              ctx.strokeStyle = "white";
+              ctx.lineWidth = 2;
+              ctx.font = "bold 10px Arial";
+              ctx.textBaseline = "middle";
+              ctx.textAlign = "center";
+
+              // Negative angle indicator
+              ctx.beginPath();
+              ctx.moveTo(centerX - radius + 5, centerY);
+              ctx.lineTo(centerX - radius + 15, centerY);
+              ctx.stroke();
+              ctx.fillText("-90°", centerX - radius + 25, centerY);
+
+              // Positive angle indicator
+              ctx.beginPath();
+              ctx.moveTo(centerX + radius - 5, centerY);
+              ctx.lineTo(centerX + radius - 15, centerY);
+              ctx.stroke();
+              ctx.fillText("90°", centerX + radius - 25, centerY);
+
+              // Display the current inclination value
+              ctx.fillStyle = "white"; // White color for the text
+              ctx.font = "bold 14px Arial";
+              ctx.textAlign = "center";
+              ctx.fillText(inclinationValue.toString() + "°", centerX, centerY);
+          }
+    }
+
+
+
+    Text {
+        anchors {
+            top: currentTimeText.bottom
+            left: parent.left
+            topMargin: 10
+            leftMargin: 20
+        }
+        id: currentDateText
+        font.pixelSize: 20
+        color: "white"
+    }
+
+    Text {
+        anchors {
+            top: speedometerCanvas.bottom
+            horizontalCenter: parent.horizontalCenter
+            topMargin: 70
+        }
+
+    }
+
+   Row {
+        anchors {
+            top: parent.top
+            right: parent.right
+            topMargin: 30
+            rightMargin: 30
+        }
+
+        spacing: 40
+        Image {
+            width: 30
+            height: 30
+            source: "qrc:/UI/assets/map 1.png"
+            smooth: true
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    // Add the code to handle the click event for the map icon here
+                    // For example, load the map screen using a Loader
+                    mainLoader.source = "MapScreen.qml";
+                }
+            }
+        }
+        Image {
+            width: 30
+            height: 30
+            source: "qrc:/UI/assets/bluetooth .png"
+            smooth: true
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                 console.log("Bluetooth icon clicked");
+                     mainLoader.source = "bluetoothmode.qml";
+                 bluetoothController.connectToDevice("08:BF:A0:64:50:0E");
+                }
+            }
+        }
+
+        Image {
+            width: 30
+            height: 30
+            source: "qrc:/UI/assets/battery.png"
+            smooth: true
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    mainLoader.source = "battery.qml";
+                }
+            }
+        }
+
+}
+
+    Text {
+        text: batteryLevel.toString() + "%"
+        font.family: "YourCustomFontName" // Replace "YourCustomFontName" with the name of your desired font
+        font.pixelSize: 15
+        color: "white"
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.left: parent.left
+        anchors.leftMargin: 20
+    }
+    // Assist Level Buttons
+
+    Row {
+                   anchors {
+                       top: batteryGaugeCanvas.bottom
+                       horizontalCenter: parent.horizontalCenter
+                       topMargin: 20
+                   }
+
+                   spacing: 20
+                   Button {
+                       text: "+"
+                       width: 60
+                       height: 60
+                       font.pixelSize: 20
+                       onClicked: {
+                           increaseAssistLevel();
+                       }
+                   }
+
+                   Text {
+                       text: assistLevel
+                       font.pixelSize: 20
+                       color: "white"
+                       horizontalAlignment: Text.AlignHCenter
+                   }
+
+                   Button {
+                       text: "-"
+                       width: 60
+                       height: 60
+                       font.pixelSize: 20
+                       onClicked: {
+                           decreaseAssistLevel();
+                       }
+                   }
+               }
+
+
+        // Function to increase the assist level
+        function increaseAssistLevel() {
+            assistLevel++;
+            if (assistLevel > maxAssistLevel) {
+                assistLevel = maxAssistLevel;
+            }
+        }
+
+        // Function to decrease the assist level
+        function decreaseAssistLevel() {
+            assistLevel--;
+            if (assistLevel < minAssistLevel) {
+                assistLevel = minAssistLevel;
+            }
+        }
+        Row {
+            anchors {
+                bottom: parent.bottom
+                horizontalCenter: parent.horizontalCenter
+                bottomMargin: 20
+            }
+            spacing: 30
+            Image {
+                   source: "qrc:/UI/assets/time.png" // Replace with the path to your desired image
+                   width: 25 // Adjust the image width as needed
+                   height: 25// Adjust the image height as needed
+            }
+            // Display trip duration
+            Text {
+                text: "Trip Duration: " + calculateTripDuration()
+                font.pixelSize: 15
+                color: "white"
+            }
+            Image {
+                   source: "qrc:/UI/assets/power.png" // Replace with the path to your desired image
+                   width: 25 // Adjust the image width as needed
+                   height: 25// Adjust the image height as needed
+               }
+            Text {
+                   text: "Solar Charging: " + calculateSolarCharging()
+                   font.pixelSize: 15
+                   color: "white"
+               }
+
+            // Display trip distance
+            Image {
+                   source: "qrc:/UI/assets/distance.png" // Replace with the path to your desired image
+                   width: 25 // Adjust the image width as needed
+                   height: 25// Adjust the image height as needed
+               }
+            Text {
+                text: "Trip Distance: " + distanceValue.toFixed(2) + " km"
+                font.pixelSize: 15
+                color: "white"
+            }
+            Image {
+                   source: "qrc:/UI/assets/temp.png" // Replace with the path to your desired image
+                   width: 25 // Adjust the image width as needed
+                   height: 25// Adjust the image height as needed
+               }
+            Text {
+                    text: temperatureValue.toString() + "°C"
+                    font.pixelSize: 15
+                    color: "white"
+                }
+
+        }
+
+        // Function to calculate trip duration based on start and end time (in seconds)
+        function calculateTripDuration() {
+            var startTime = new Date(); // Replace with actual start time
+            var endTime = new Date();   // Replace with actual end time
+            var durationInSeconds = (endTime - startTime) / 1000;
+            var hours = Math.floor(durationInSeconds / 3600);
+            var minutes = Math.floor((durationInSeconds % 3600) / 60);
+            var seconds = Math.floor(durationInSeconds % 60);
+
+            return hours.toString().padStart(2, '0') + ":" +
+                   minutes.toString().padStart(2, '0') + ":" +
+                   seconds.toString().padStart(2, '0');
+        }
+
+
+
+
+        // Function to calculate solar charging based on the solar panel's power output
+        function calculateSolarCharging() {
+            var solarPanelPower = 100; // Replace with the actual power output of your solar panel in watts
+            var batteryChargingRate = (solarPanelPower / 1000) * 0.2; // Assuming 20% efficiency
+
+            // Calculate the charging percentage
+            var chargingPercentage = Math.min((batteryChargingRate / 2) * 100, 100); // Maximum 50% charge per hour
+
+            return chargingPercentage.toFixed(1) + "%";
+        }
+
+}
+
+
