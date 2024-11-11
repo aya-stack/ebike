@@ -6,6 +6,6 @@ This application, developed with Qt, allows users to monitor key metrics of thei
 *Location (GPS tracking)
 *Battery charge level
 *Distance traveled
-*Temperature (optional, if available)
+*Temperature
 *Current power usage
 The app can be connected to the e-bike's onboard system via Bluetooth to display and analyze these parameters in a user-friendly interface.
